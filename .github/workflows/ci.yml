@@ -30,7 +30,7 @@ jobs:
     container: rockylinux:9
     steps:
       - name: Install test dependencies (dnf)
-        run: dnf install -y -q git bash coreutils findutils procps-ng gawk sed grep util-linux shadow-utils tar gzip openssl hostname iproute which
+        run: dnf install -y -q git bash findutils procps-ng gawk sed grep util-linux shadow-utils tar gzip openssl hostname iproute which
       - uses: actions/checkout@v4
       - name: Test suite on Rocky 9
         run: tests/run.sh
@@ -40,7 +40,7 @@ jobs:
     container: rockylinux:9
     steps:
       - name: Install dependencies (dnf)
-        run: dnf install -y -q git bash coreutils findutils procps-ng gawk sed grep util-linux shadow-utils tar gzip openssl hostname iproute which
+        run: dnf install -y -q git bash findutils procps-ng gawk sed grep util-linux shadow-utils tar gzip openssl hostname iproute which
       - uses: actions/checkout@v4
       - name: Real user sync/offboard/delete on Rocky (wheel group path)
         run: |
