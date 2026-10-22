@@ -24,25 +24,47 @@ jobs:
           ! getent passwd ciuser
       - run: ./sysops health --format md || true
       - run: sudo ./sysops user audit
-  rocky:
-    # Same suite on a RHEL-family distro: Rocky Linux 9 in a container (runs as root).
+  rhel-family:
+    # Same checks across the Red Hat family: Rocky, AlmaLinux, CentOS Stream, Fedora,
+    # and Red Hat UBI 9 (the free official Red Hat image - not a RHEL subscription).
     runs-on: ubuntu-latest
-    container: rockylinux:9
+    strategy:
+      fail-fast: false
+      matrix:
+        distro: [rocky-9, alma-9, centos-stream-9, fedora-latest, ubi-9]
+        include:
+          - {distro: rocky-9,          image: rockylinux:9}
+          - {distro: alma-9,           image: almalinux:9}
+          - {distro: centos-stream-9,  image: quay.io/centos/centos:stream9}
+          - {distro: fedora-latest,    image: fedora:latest}
+          - {distro: ubi-9,            image: registry.access.redhat.com/ubi9/ubi:latest}
+    container: ${{ matrix.image }}
     steps:
       - name: Install test dependencies (dnf)
         run: dnf install -y -q git bash diffutils findutils procps-ng gawk sed grep util-linux shadow-utils tar gzip openssl hostname iproute which
       - uses: actions/checkout@v4
-      - name: Test suite on Rocky 9
+      - name: Test suite on ${{ matrix.distro }}
         run: tests/run.sh
-  live-rocky:
-    # Real useradd/offboard/delete on Rocky 9 - exercises the RHEL "wheel" sudo-group path.
+  live-rhel-family:
+    # Real useradd/offboard/delete on each RHEL-family distro - exercises the "wheel"
+    # sudo-group path that differs from Debian/Ubuntu.
     runs-on: ubuntu-latest
-    container: rockylinux:9
+    strategy:
+      fail-fast: false
+      matrix:
+        distro: [rocky-9, alma-9, centos-stream-9, fedora-latest, ubi-9]
+        include:
+          - {distro: rocky-9,          image: rockylinux:9}
+          - {distro: alma-9,           image: almalinux:9}
+          - {distro: centos-stream-9,  image: quay.io/centos/centos:stream9}
+          - {distro: fedora-latest,    image: fedora:latest}
+          - {distro: ubi-9,            image: registry.access.redhat.com/ubi9/ubi:latest}
+    container: ${{ matrix.image }}
     steps:
       - name: Install dependencies (dnf)
         run: dnf install -y -q git bash diffutils findutils procps-ng gawk sed grep util-linux shadow-utils tar gzip openssl hostname iproute which
       - uses: actions/checkout@v4
-      - name: Real user sync/offboard/delete on Rocky (wheel group path)
+      - name: Real user sync/offboard/delete on ${{ matrix.distro }} (wheel group path)
         run: |
           printf 'username,fullname,groups,shell,sudo,ssh_public_key,expires\nciuser,CI User,,/bin/bash,yes,,\n' > /tmp/u.csv
           ./sysops user sync /tmp/u.csv --apply
