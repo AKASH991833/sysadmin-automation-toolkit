@@ -89,7 +89,7 @@ jobs:
         run: |
           export DEBIAN_FRONTEND=noninteractive
           apt-get update -qq
-          apt-get install -y -qq --no-install-recommends git bash diffutils findutils procps gawk sed grep util-linux passwd tar gzip openssl hostname iproute2 which ca-certificates
+          apt-get install -y -qq --no-install-recommends git bash diffutils findutils procps gawk sed grep python3 util-linux passwd tar gzip openssl hostname iproute2 which ca-certificates
       - uses: actions/checkout@v4
       - name: Test suite on ${{ matrix.distro }}
         run: tests/run.sh
