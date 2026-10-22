@@ -96,6 +96,22 @@ Logs fill disks, but deleting a log that a service is still writing breaks the s
 ### 6. Disk and journal
 `sysops disk hogs /var 10` lists the largest directories and files. `sysops journal 20` shows the last audit entries (`$STATE/journal.jsonl`, default `/var/lib/sysops` as root).
 
+### 7. Crontab management and LVM/RAID health
+```
+sysops cron add backup "30 2 * * *" "/usr/local/bin/backup.sh" --apply   # plan first, --apply writes; crontab is backed up
+sysops cron list | status | validate | audit
+sysops cron remove backup --apply
+sysops cron wrap NAME --timeout 600 -- cmd args     # flock: a slow run never overlaps the next; failure -> webhook
+sysops storage health            # RAID + LVM + fstab in one exit code
+sysops raid status --alert       # parses /proc/mdstat: degraded, inactive, rebuilding
+sysops lvm status --alert        # VG free space, snapshot/thin fullness (thresholds via env)
+sysops lvm extend vg0/data --by 10G --apply      # refuses to eat the VG reserve, grows ext4/xfs online
+sysops lvm snapshot create|list|remove|prune vg0/data
+sysops lvm backup vg0/data --dest /backup        # snapshot -> read-only mount -> archive -> cleanup, plus vgcfgbackup
+sysops fstab check                               # catches typos before the next boot does
+```
+Why: a bad `/etc/fstab` line stops a server from booting, a snapshot that fills up is silently invalidated, a degraded RAID is one disk away from data loss, and a cron job that outlives its interval runs twice. Each of these is checked, not assumed.
+
 ## Command reference
 Run `./sysops` with no arguments for the full list. Environment: `SYSOPS_ROOT` (manage users of another root filesystem, for images and tests), `SYSOPS_STATE`, `SYSOPS_WEBHOOK_URL`, `NO_COLOR`.
 
@@ -106,7 +122,17 @@ Run `./sysops` with no arguments for the full list. Environment: `SYSOPS_ROOT` (
 - **CI result (Oct 22, 2026):** `test` and `live` (real useradd/userdel on an Ubuntu VM) are green on the first run.
 - **RHEL-family verified:** the `rhel-family` CI matrix runs the full suite, and `live-rhel-family` runs real useradd/offboard/delete asserting `sudo: yes` maps to the `wheel` group, on Rocky 9, AlmaLinux 9, CentOS Stream 9, Fedora (latest) and Red Hat UBI 9 (the free official Red Hat build - no RHEL subscription claimed).
 - **Debian verified:** the `debian` CI matrix runs the full suite, and `live-debian` runs real useradd/offboard/delete asserting `sudo: yes` maps to the `sudo` group, on Debian 12 (bookworm) and Debian 13 (trixie).
+- **v1.3.0 storage/cron:** fixture tests cover RAID/LVM parsing and thresholds, and real `crontab` tests run where cron is installed (CI sets `SYSOPS_REQUIRE_CRON=1`, so a missing cron fails instead of skipping). `tests/storage-live.sh` really does it, as root, on loop devices: online ext4 grow, snapshot overflow, prune, snapshot backup + restore with checksums, VG nearly full, and RAID1 fail/degrade/remove/add/rebuild. See the per-distro table below.
 - Password-based accounts are intentionally not created (key-only).
+
+| v1.3.0 | cron tests | fixture storage tests | real LVM extend + RAID | real snapshot + backup drills |
+|---|---|---|---|---|
+| Ubuntu runner | real crontab | yes | yes | yes |
+| Debian 12 (container) | real crontab | yes | yes | yes (host modules mounted) |
+| Debian 13, Rocky 9, Alma 9, CentOS Stream 9, Fedora | real crontab | yes | see CI badge | skipped when the kernel target is not loadable in the container |
+| UBI 9 | real crontab | yes | no (no mdadm/lvm2) | no |
+Containers share the runner kernel; this table is updated from the CI results, not from hope.
+
 
 ## License
 MIT

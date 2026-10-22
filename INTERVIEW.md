@@ -113,5 +113,16 @@ A `group sync` for declarative groups, SSH CA-signed certificates instead of per
 chrony/ntp and firewall task presets for the runner, a `--check` mode for Nagios-style drift
 alarms on the CSV, and exporting journal.jsonl to syslog.
 
+## Storage and cron (v1.3.0)
+**Why a flock wrapper?** A cron job that takes longer than its interval starts twice and corrupts backups. `flock -n` skips the overlap and the kernel drops the lock if the process dies, so a crash never wedges the next run. A timeout stops a hung job from holding it forever.
+
+**How do you extend an LV safely?** Plan first, refuse if the VG would drop below a reserve, then `lvextend` with filesystem resize so the mounted ext4/xfs grows online. Tested on a real loop-device VG with checksums before and after.
+
+**Why do snapshot backups need care?** A snapshot has a fixed copy-on-write area. If writes exceed it, the snapshot is invalidated. The helper sizes it, mounts read-only, cleans up on every exit path (trap), and `lvm status` flags a snapshot nearing full. The drill really overflows one.
+
+**How do you know a RAID is degraded?** `/proc/mdstat` shows `[2/1] [U_]`. The parser reads that, and the drill fails a real md RAID1 member, removes it, adds it back and watches the rebuild.
+
+**What did you not test?** See the README table: the container distros share the runner kernel, so some need the host `dm-snapshot` module and skip those drills when it is not loadable. UBI has no LVM/RAID tools.
+
 ## Honest test status
 See the README "Honest test report" - it is kept in sync with CI and names exactly what ran where.
