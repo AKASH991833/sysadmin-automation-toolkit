@@ -34,7 +34,7 @@ jobs:
           - {distro: fedora-latest,   image: "fedora:latest",                pm: dnf}
     container:
       image: ${{ matrix.image }}
-      options: --privileged -v /dev:/dev
+      options: --privileged -v /dev:/dev -v /lib/modules:/lib/modules:ro
     steps:
       - name: Install (apt)
         if: matrix.pm == 'apt'
