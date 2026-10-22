@@ -1,5 +1,5 @@
 # shellcheck shell=bash
-SO_VERSION="1.0.0"
+SO_VERSION="1.3.0"
 UROOT=${SYSOPS_ROOT:-}                                   # alternate root for user management (tests, image building)
 STATE=${SYSOPS_STATE:-$([[ $EUID -eq 0 ]] && echo /var/lib/sysops || echo "$HOME/.local/state/sysops")}
 if [[ -t 1 && -z "${NO_COLOR:-}" ]]; then RED=$'\e[31m'; GRN=$'\e[32m'; YEL=$'\e[33m'; BLU=$'\e[34m'; BLD=$'\e[1m'; DIM=$'\e[2m'; OFF=$'\e[0m'; else RED=""; GRN=""; YEL=""; BLU=""; BLD=""; DIM=""; OFF=""; fi

@@ -5,11 +5,49 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - run: sudo apt-get update -qq && sudo apt-get install -y -qq shellcheck
+      - run: sudo apt-get update -qq && sudo apt-get install -y -qq shellcheck cron
       - name: ShellCheck
-        run: shellcheck -S error -x sysops lib/*.sh tests/run.sh
-      - name: Test-suite as real root (user tests use a fake root filesystem)
-        run: sudo ./tests/run.sh
+        run: shellcheck -S error -x sysops lib/*.sh tests/run.sh tests/storage-live.sh
+      - name: Test-suite as real root (user tests use a fake root filesystem; cron tests use the real crontab)
+        run: sudo SYSOPS_REQUIRE_CRON=1 ./tests/run.sh
+  storage-live:
+    # Real LVM + md-RAID on the kernel via loop devices, with udev: extend, snapshot overflow, backup+restore, RAID fail/rebuild.
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: sudo apt-get update -qq && sudo apt-get install -y -qq lvm2 mdadm e2fsprogs xfsprogs
+      - name: Real storage drills (Ubuntu runner, real kernel, udev)
+        run: sudo ./tests/storage-live.sh
+  storage-live-distros:
+    # The same real drills with each distro's own lvm2/mdadm userspace (containers share the runner kernel).
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        distro: [debian-12, debian-13, rocky-9, alma-9, centos-stream-9, fedora-latest]
+        include:
+          - {distro: debian-12,       image: "debian:12",                    pm: apt}
+          - {distro: debian-13,       image: "debian:13",                    pm: apt}
+          - {distro: rocky-9,         image: "rockylinux:9",                 pm: dnf}
+          - {distro: alma-9,          image: "almalinux:9",                  pm: dnf}
+          - {distro: centos-stream-9, image: "quay.io/centos/centos:stream9", pm: dnf}
+          - {distro: fedora-latest,   image: "fedora:latest",                pm: dnf}
+    container:
+      image: ${{ matrix.image }}
+      options: --privileged -v /dev:/dev
+    steps:
+      - name: Install (apt)
+        if: matrix.pm == 'apt'
+        run: |
+          export DEBIAN_FRONTEND=noninteractive
+          apt-get update -qq
+          apt-get install -y -qq --no-install-recommends git bash coreutils findutils procps gawk sed grep util-linux mount tar gzip openssl hostname iproute2 which ca-certificates lvm2 mdadm e2fsprogs kmod curl python3
+      - name: Install (dnf)
+        if: matrix.pm == 'dnf'
+        run: dnf install -y -q git bash coreutils diffutils findutils procps-ng gawk sed grep util-linux tar gzip openssl hostname iproute which lvm2 mdadm e2fsprogs kmod curl python3
+      - uses: actions/checkout@v4
+      - name: Real LVM + RAID drills on ${{ matrix.distro }}
+        run: STORAGE_NO_UDEV=1 ./tests/storage-live.sh
   live:
     runs-on: ubuntu-latest
     steps:
@@ -42,8 +80,12 @@ jobs:
     steps:
       - name: Install test dependencies (dnf)
         run: dnf install -y -q git bash diffutils findutils procps-ng gawk sed grep util-linux shadow-utils tar gzip openssl hostname iproute which
+      - name: Install cron (real crontab for the cron tests)
+        run: dnf install -y -q cronie || echo "cronie not available on this image"
       - uses: actions/checkout@v4
       - name: Test suite on ${{ matrix.distro }}
+        env:
+          SYSOPS_REQUIRE_CRON: ${{ matrix.distro != 'ubi-9' && '1' || '' }}
         run: tests/run.sh
   live-rhel-family:
     # Real useradd/offboard/delete on each RHEL-family distro - exercises the "wheel"
@@ -90,8 +132,12 @@ jobs:
           export DEBIAN_FRONTEND=noninteractive
           apt-get update -qq
           apt-get install -y -qq --no-install-recommends git bash diffutils findutils procps gawk sed grep python3 util-linux passwd tar gzip openssl hostname iproute2 which ca-certificates
+      - name: Install cron (real crontab for the cron tests)
+        run: DEBIAN_FRONTEND=noninteractive apt-get install -y -qq --no-install-recommends cron
       - uses: actions/checkout@v4
       - name: Test suite on ${{ matrix.distro }}
+        env:
+          SYSOPS_REQUIRE_CRON: "1"
         run: tests/run.sh
   live-debian:
     # Real useradd/offboard/delete on each Debian release - exercises the "sudo"

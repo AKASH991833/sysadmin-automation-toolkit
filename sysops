@@ -2,7 +2,7 @@
 # sysops - sysadmin automation toolkit: declarative users, incremental backups, safe log cleanup, health reports, task runner
 set -uo pipefail
 HOME_DIR=$(dirname "$(readlink -f "${BASH_SOURCE[0]}")")
-for f in core users backup logs health runner; do # shellcheck disable=SC1090
+for f in core users backup logs health runner cron storage; do # shellcheck disable=SC1090
   source "$HOME_DIR/lib/$f.sh"; done
 
 usage() { cat <<U
@@ -24,6 +24,21 @@ LOGS / DISK / HEALTH
 RUNNER
   sysops run TASKS_FILE                            run tasks with timeouts + overlap lock + summary
   sysops cron                                      print a cron.d entry
+CRON (managed entries - only blocks marked "sysops:NAME" are ever touched; plans first, --apply to write, backups kept)
+  sysops cron add NAME --schedule "*/5 * * * *" --cmd "CMD" [--timeout 3600] [--user U] [--apply]
+  sysops cron list|status|remove NAME [--user U] [--apply]
+  sysops cron validate [FILE] [--system]           lint a crontab (5 fields, ranges, names, %, user column)
+  sysops cron wrap --name N [--timeout S] -- CMD   overlap-safe run: flock, timeout, log, status file, webhook on failure
+  sysops cron audit                                writable scripts, missing commands, %, root-from-/tmp, cron.allow ...
+STORAGE (read-only commands exit 0 ok / 1 warn / 2 crit)
+  sysops storage health                            RAID + LVM + fstab in one report
+  sysops storage raid status [--alert]             md arrays: degraded / failed / resync progress
+  sysops storage lvm status [--alert]              VG free space, PV missing, snapshot + thin-pool fullness
+  sysops storage lvm extend VG/LV --by 5G [--apply]        grow LV + filesystem safely (keeps a VG reserve)
+  sysops storage lvm snapshot create|list|remove|prune ...
+  sysops storage lvm backup VG/LV --dest DIR [--key F]     snapshot -> read-only mount -> incremental backup -> cleanup
+  sysops storage fstab check [FILE] [--no-resolve]  catch the typo that breaks boot BEFORE you reboot
+  sysops storage fstab add --device D --mount M --fs F [--apply]   validate-then-append with backup
   sysops journal [N]                               last N audit-journal entries
 Environment: SYSOPS_ROOT (manage users of another root fs), SYSOPS_STATE, SYSOPS_WEBHOOK_URL, NO_COLOR
 U
@@ -40,7 +55,8 @@ case ${1:-help} in
   disk) shift; [[ ${1:-} == hogs ]] || die "disk: hogs"; shift; disk_hogs "$@" ;;
   health) shift; fmt=text; [[ ${1:-} == --format ]] && fmt=$2; health_report "$fmt" ;;
   run) shift; run_all "$@" ;;
-  cron) cron_print ;;
+  cron) shift; cron_cmd "$@" ;;
+  storage) shift; storage_cmd "$@" ;;
   journal) tail -n "${2:-20}" "$STATE/journal.jsonl" 2>/dev/null || echo "journal is empty" ;;
   version|--version) echo "sysops $SO_VERSION" ;;
   *) usage ;;
