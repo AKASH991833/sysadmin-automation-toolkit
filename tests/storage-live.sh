@@ -33,6 +33,7 @@ if [[ -n ${STORAGE_NO_UDEV:-} ]]; then
 fi
 command -v lvcreate >/dev/null || { echo "lvm2 missing"; exit 1; }
 echo "lvm: $(lvm version 2>&1 | head -1 | xargs)"; echo "kernel: $(uname -r)"; [[ -x $(command -v mdadm) ]] && mdadm --version 2>&1 | head -1
+modprobe dm-snapshot 2>/dev/null; SNAPOK=0; dmsetup targets 2>/dev/null | grep -qw snapshot && SNAPOK=1; (( SNAPOK )) || echo "NOTE: kernel dm-snapshot target unavailable in this container - snapshot drills SKIPPED (they run on the Ubuntu runner job)"
 
 echo "== LVM on loop devices"
 L1=$(mkloop pv1 300M) && L2=$(mkloop pv2 300M) || { echo "cannot create loop devices here"; exit 77; }
@@ -53,6 +54,7 @@ after=$(df -B1 --output=size "$T/mnt" | tail -1)
 assert "extend --apply grows LV AND mounted ext4"     '(( rc == 0 )) && (( after > before + 80*1024*1024 ))'
 assert "data intact after online grow"                '(cd "$T/mnt" && sha256sum -c "$T/sums.orig" >/dev/null 2>&1)'
 
+if (( SNAPOK )); then
 echo "== LVM snapshot that really fills up"
 snapout=$($SO storage lvm snapshot create vgt/data --size 32M --apply 2>&1); rc=$?; (( rc == 0 )) || echo "    snapshot create said: $snapout"
 SNAP=$(lvs --noheadings -o lv_name vgt 2>/dev/null | tr -d ' ' | grep _sysops_snap_ | head -1)
@@ -89,6 +91,7 @@ assert "restore brings every file back, checksums match" '[[ -n $rdir ]] && (cd 
 out=$($SO storage lvm backup vgt/data --dest "$T/bk2" --size 900G 2>&1); rc=$?
 assert "backup refuses when VG cannot hold the snapshot" '(( rc != 0 )) && grep -q "not enough free space" <<<"$out"'
 
+else echo "  SKIP snapshot + snapshot-backup drills (no dm-snapshot)"; fi
 echo "== LVM volume group nearly full"
 lvcreate -y -n filler -l 98%FREE vgt >/dev/null 2>&1
 out=$($SO storage lvm status); rc=$?

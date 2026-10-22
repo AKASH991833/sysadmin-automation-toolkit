@@ -26,7 +26,7 @@ jobs:
       matrix:
         distro: [debian-12, debian-13, rocky-9, alma-9, centos-stream-9, fedora-latest]
         include:
-          - {distro: debian-12,       image: "debian:12",                    pm: apt}
+          - {distro: debian-12,       image: "debian:12",                    pm: apt, mods: "-v /lib/modules:/lib/modules:ro"}
           - {distro: debian-13,       image: "debian:13",                    pm: apt}
           - {distro: rocky-9,         image: "rockylinux:9",                 pm: dnf}
           - {distro: alma-9,          image: "almalinux:9",                  pm: dnf}
@@ -34,7 +34,7 @@ jobs:
           - {distro: fedora-latest,   image: "fedora:latest",                pm: dnf}
     container:
       image: ${{ matrix.image }}
-      options: --privileged -v /dev:/dev -v /lib/modules:/lib/modules:ro
+      options: --privileged -v /dev:/dev ${{ matrix.mods }}
     steps:
       - name: Install (apt)
         if: matrix.pm == 'apt'
