@@ -1,3 +1,10 @@
+## 2.0.0
+
+- Native architecture-independent DEB/RPM packages with actual install/version/remove matrix CI.
+- Signed metadata package repository publication, ephemeral 30-day keys, tested APT/DNF repository installs. RPM headers unsigned; trust bootstrap and key rotation documented.
+- Shared enterprise hub: versioned conservative CIS crosswalk (all checks accounted for, only verified references mapped), selected Ansible hardening role, idempotence checks, Prometheus exporter/rules, Grafana Compose dashboard, and safe incident reconstruction.
+- Beginner LEARN.md guides. No invented experience, certification or production attack claims. Existing real-vs-fixture storage limits remain.
+
 # Changelog
 
 ## [1.3.0] - 2026-10-22

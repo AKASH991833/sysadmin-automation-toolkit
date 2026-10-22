@@ -136,3 +136,18 @@ Containers share the runner kernel; this table is updated from the CI results, n
 
 ## License
 MIT
+
+
+## Enterprise v2 learning modules
+
+Start at [LEARN.md](LEARN.md). Native builds and installation instructions: [packaging/LEARN.md](packaging/LEARN.md).
+
+The shared enterprise hub is [linux-server-hardening-monitoring](https://github.com/AKASH991833/linux-server-hardening-monitoring):
+- `compliance/`: all 50 hk checks accounted for, with 10 verified related/partial mappings to the actual CIS Ubuntu 22.04 LTS v2.0.0 PDF; the rest are explicitly unmapped. No CIS certification and no claim that Ubuntu IDs apply to Debian/RHEL.
+- `ansible/`: selected plan-first hk hardening, rolling multi-host playbook, rootfs and live-VM idempotence tests. Not full CIS or webstack deployment.
+- `monitoring/`: non-root read-only exporter, Prometheus rules with firing/recovery tests, provisioned Grafana dashboard, localhost-only Compose demo. Container metrics are not full host metrics. No notification receiver is configured.
+- `incidents/`: harmless filesystem/log simulation with generated timeline and evidence, detection, containment, rollback and eradication. This is not a real exploit or production incident.
+
+Each repository has .deb/.rpm build/install/remove CI. The Pages publication workflow builds signed APT/RPM metadata and tests installs through the repository before deployment. Keys rotate each publication and expire in 30 days; RPM package headers are unsigned. This is a learning channel, not unattended production updates. See packaging/LEARN.md before trusting/installing anything.
+
+Tests distinguish fixtures from real services and kernel work. v1.3 storage limits still apply: real LVM is verified only on the Ubuntu runner and Debian 12, not every container. A green package install does not verify every workload command. CI artifacts hold generated incident reports and Grafana screenshots.

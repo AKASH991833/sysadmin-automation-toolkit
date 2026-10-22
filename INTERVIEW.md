@@ -126,3 +126,13 @@ alarms on the CSV, and exporting journal.jsonl to syslog.
 
 ## Honest test status
 See the README "Honest test report" - it is kept in sync with CI and names exactly what ran where.
+
+
+## Enterprise v2: questions you should be able to answer
+
+- Why is a PASS not CIS certification? Mapping coverage is partial, and version, effective configuration, Match contexts and manual controls matter.
+- What is idempotence? A second Ansible converge returns changed=0, verified by CI, not merely exit 0.
+- Why sign package metadata? It protects the index and package hashes. Our learning key rotates, so trust must be re-bootstrapped; individual RPM headers remain unsigned.
+- What does a Grafana panel prove? Only the samples from its data source. Missing host data and a container-visible filesystem are limits, not healthy verdicts.
+- Is rollback the same as incident recovery? No. Our SUID demo proves rollback can restore the unsafe state. Eradication is a separate step.
+- Did this run in a real company? No. Describe it honestly as a tested portfolio lab.
