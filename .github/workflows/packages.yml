@@ -36,7 +36,7 @@ jobs:
         image: ['rockylinux:9', 'almalinux:9', 'quay.io/centos/centos:stream9', 'fedora:latest', 'registry.access.redhat.com/ubi9/ubi:latest']
     container: ${{ matrix.image }}
     steps:
-      - run: dnf install -y -q git rpm-build bash coreutils findutils grep sed gawk util-linux python3 tar gzip which
+      - run: dnf install --allowerasing -y -q git rpm-build bash coreutils findutils grep sed gawk util-linux python3 tar gzip which
       - uses: actions/checkout@v4
       - run: |
           packaging/build.sh rpm
