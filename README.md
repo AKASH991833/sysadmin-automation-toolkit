@@ -150,4 +150,6 @@ The shared enterprise hub is [linux-server-hardening-monitoring](https://github.
 
 Each repository has .deb/.rpm build/install/remove CI. The Pages publication workflow builds signed APT/RPM metadata and tests installs through the repository before deployment. Keys rotate each publication and expire in 30 days; RPM package headers are unsigned. This is a learning channel, not unattended production updates. See packaging/LEARN.md before trusting/installing anything.
 
+Verified live package repository: https://akash991833.github.io/sysadmin-automation-toolkit/ (signature on `apt/InRelease` and `rpm/repodata/repomd.xml` checked against the published key; the .deb hash on the page matches the repository index). Release: https://github.com/AKASH991833/sysadmin-automation-toolkit/releases/tag/v2.0.0
+
 Tests distinguish fixtures from real services and kernel work. v1.3 storage limits still apply: real LVM is verified only on the Ubuntu runner and Debian 12, not every container. A green package install does not verify every workload command. CI artifacts hold generated incident reports and Grafana screenshots.
