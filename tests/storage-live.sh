@@ -33,8 +33,10 @@ if [[ -n ${STORAGE_NO_UDEV:-} ]]; then
 fi
 command -v lvcreate >/dev/null || { echo "lvm2 missing"; exit 1; }
 echo "lvm: $(lvm version 2>&1 | head -1 | xargs)"; echo "kernel: $(uname -r)"; [[ -x $(command -v mdadm) ]] && mdadm --version 2>&1 | head -1
+LVMOK=0; modprobe dm-mod 2>/dev/null; _pf=$(mktemp); truncate -s 48M "$_pf"; _pl=$(losetup -f --show "$_pf" 2>/dev/null); if [[ -n $_pl ]] && pvcreate -y "$_pl" >/dev/null 2>&1 && vgcreate vgprobe "$_pl" >/dev/null 2>&1 && lvcreate -y -n p -L 8M vgprobe >/dev/null 2>&1 && [[ -b /dev/vgprobe/p ]]; then LVMOK=1; fi; vgremove -ff vgprobe >/dev/null 2>&1; [[ -n $_pl ]] && { pvremove -ff -y "$_pl" >/dev/null 2>&1; losetup -d "$_pl" 2>/dev/null; }; rm -f "$_pf"; (( LVMOK )) || echo "NOTE: LVM cannot create logical volumes in this container (device-mapper not usable) - LVM drills SKIPPED, RAID drills still run"
 modprobe dm-snapshot 2>/dev/null; SNAPOK=0; dmsetup targets 2>/dev/null | grep -qw snapshot && SNAPOK=1; (( SNAPOK )) || echo "NOTE: kernel dm-snapshot target unavailable in this container - snapshot drills SKIPPED (they run on the Ubuntu runner job)"
 
+if (( LVMOK )); then
 echo "== LVM on loop devices"
 L1=$(mkloop pv1 300M) && L2=$(mkloop pv2 300M) || { echo "cannot create loop devices here"; exit 77; }
 assert "pvcreate/vgcreate/lvcreate"                   'pvcreate -y $L1 $L2 >/dev/null 2>&1 && vgcreate vgt $L1 $L2 >/dev/null 2>&1 && lvcreate -y -n data -L 120M vgt >/dev/null 2>&1 && ls /dev/vgt/data >/dev/null'
@@ -101,6 +103,7 @@ out=$($SO storage lvm status); rc=$?
 assert "back to OK after freeing space"               '(( rc == 0 ))'
 umount "$T/mnt"; vgchange -an vgt >/dev/null 2>&1; vgremove -ff vgt >/dev/null 2>&1
 
+fi
 echo "== software RAID1: fail, degrade, rebuild"
 if ! command -v mdadm >/dev/null; then echo "  mdadm missing: RAID drills not run"; bad "mdadm is installed"; else
 R1=$(mkloop r1 120M); R2=$(mkloop r2 120M); R3=$(mkloop r3 120M)
