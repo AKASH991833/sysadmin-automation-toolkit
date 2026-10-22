@@ -1,13 +1,18 @@
 # Sysadmin Automation Toolkit (`sysops`)
 
 [![CI](https://github.com/AKASH991833/sysadmin-automation-toolkit/actions/workflows/ci.yml/badge.svg)](https://github.com/AKASH991833/sysadmin-automation-toolkit/actions/workflows/ci.yml)
-![bash](https://img.shields.io/badge/language-bash-4EAA25) ![license](https://img.shields.io/badge/license-MIT-blue)
+[![release](https://img.shields.io/github/v/release/AKASH991833/sysadmin-automation-toolkit)](https://github.com/AKASH991833/sysadmin-automation-toolkit/releases)
+![bash](https://img.shields.io/badge/language-bash-4EAA25) ![tested on](https://img.shields.io/badge/tested%20on-ubuntu%20%2B%20rocky%209-blue) ![license](https://img.shields.io/badge/license-MIT-blue)
 
 The daily jobs of a Linux admin (create and remove users, take backups, clean logs, check health, run scheduled maintenance) as **one safe, tested command-line tool**. Pure Bash, no dependencies.
 
 Every dangerous action is **a plan first** (dry-run by default), then `--apply`. Every applied action is written to an **audit journal**.
 
 ![plan](docs/img/user-plan.png)
+
+**20-second demo** (real output: plan, apply, idempotent second run, incremental backup):
+
+![demo](docs/img/demo.gif)
 
 ## What makes this different
 
@@ -22,7 +27,9 @@ Every dangerous action is **a plan first** (dry-run by default), then `--apply`.
 | **Health report** | text / Markdown / HTML / JSON. Exit code 0 ok, 1 warning, 2 critical. |
 | **Audit journal** | `journal.jsonl`: time, who (even through sudo), action, target, detail. |
 
-## Quick start
+> Preparing for an interview? Read [INTERVIEW.md](INTERVIEW.md) (60-second pitch, design choices, 10 Q&A).
+
+## Quick start (60 seconds to your first plan)
 ```bash
 git clone https://github.com/AKASH991833/sysadmin-automation-toolkit.git
 cd sysadmin-automation-toolkit
@@ -97,7 +104,7 @@ Run `./sysops` with no arguments for the full list. Environment: `SYSOPS_ROOT` (
 - ShellCheck clean (`-S error`).
 - **Not run in the author's sandbox:** operations on the *real* `/etc/passwd` (including killing sessions with `pkill`), and `apt` update counts. The `live` job in GitHub Actions runs real `useradd/userdel` on an Ubuntu VM; see the CI badge.
 - **CI result (Oct 22, 2026):** `test` and `live` (real useradd/userdel on an Ubuntu VM) are green on the first run.
-- RHEL-family tools (`wheel`) are handled in code but were not run on RHEL.
+- **RHEL-family verified:** the `rocky` CI job runs the full suite on Rocky Linux 9, and `live-rocky` runs real useradd/offboard/delete there, asserting `sudo: yes` maps to the `wheel` group.
 - Password-based accounts are intentionally not created (key-only).
 
 ## License
