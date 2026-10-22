@@ -10,7 +10,7 @@ mkdir -p "$out"
 t=$(mktemp -d); trap 'rm -rf "$t"' EXIT
 stage=$t/stage
 mkdir -p "$stage/usr/lib/$name" "$stage/usr/bin"
-cp "$cmd" "$stage/usr/lib/$name/"
+cp "$cmd" LICENSE "$stage/usr/lib/$name/"
 for d in lib checks config compliance; do [[ ! -d $d ]] || cp -r "$d" "$stage/usr/lib/$name/"; done
 ln -s "../lib/$name/$cmd" "$stage/usr/bin/$cmd"
 if [[ $format == deb ]]; then
