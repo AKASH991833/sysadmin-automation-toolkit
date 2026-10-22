@@ -54,7 +54,7 @@ assert "extend --apply grows LV AND mounted ext4"     '(( rc == 0 )) && (( after
 assert "data intact after online grow"                '(cd "$T/mnt" && sha256sum -c "$T/sums.orig" >/dev/null 2>&1)'
 
 echo "== LVM snapshot that really fills up"
-$SO storage lvm snapshot create vgt/data --size 32M --apply >/dev/null 2>&1; rc=$?
+snapout=$($SO storage lvm snapshot create vgt/data --size 32M --apply 2>&1); rc=$?; (( rc == 0 )) || echo "    snapshot create said: $snapout"
 SNAP=$(lvs --noheadings -o lv_name vgt 2>/dev/null | tr -d ' ' | grep _sysops_snap_ | head -1)
 assert "snapshot created"                             '(( rc == 0 )) && [[ -n $SNAP ]]'
 echo "changed after snapshot" > "$T/mnt/file1.bin"
@@ -79,7 +79,7 @@ assert "prune keeps the newest 2"                     '[[ $(lvs --noheadings -o 
 for s in $(lvs --noheadings -o lv_name vgt | tr -d ' ' | grep _sysops_snap_); do lvremove -f vgt/$s >/dev/null 2>&1; done
 
 echo "== LVM backup + restore after data loss"
-$SO storage lvm backup vgt/data --dest "$T/bk" --full --size 32M >/dev/null 2>&1; rc=$?
+bkout=$($SO storage lvm backup vgt/data --dest "$T/bk" --full --size 32M 2>&1); rc=$?; (( rc == 0 )) || echo "    backup said: $bkout"
 assert "snapshot backup succeeds"                     '(( rc == 0 )) && ls "$T/bk"/lv-vgt-data-*-full.tar.gz >/dev/null && ls "$T/bk"/*.vg >/dev/null'
 assert "no snapshot or mount left behind"             '[[ $(lvs --noheadings -o lv_name vgt | grep -c _sysops_snap_) == 0 ]] && ! mount | grep -q "_sysops_snap_"'
 rm -rf "$T/mnt"/*; assert "data really gone"           '[[ -z $(ls "$T/mnt") ]]'
@@ -116,9 +116,11 @@ if mdadm --create /dev/md/sysops0 --level=1 --raid-devices=2 --metadata=1.2 --ru
   mdadm "$MD" --remove "$R2" >/dev/null 2>&1
   out=$($SO storage raid status); rc=$?
   assert "after removal still degraded (exit 2)"       '(( rc == 2 ))'
+  echo 15000 > /proc/sys/dev/raid/speed_limit_max 2>/dev/null || true   # slow the rebuild so we can observe it
   mdadm "$MD" --add "$R3" >/dev/null 2>&1; sleep 0.5
   out=$($SO storage raid status); rc=$?
   assert "rebuild running is reported as at least WARN/CRIT" '(( rc >= 1 ))'
+  echo 200000 > /proc/sys/dev/raid/speed_limit_max 2>/dev/null || true
   mdadm --wait "$MD" >/dev/null 2>&1; sleep 1
   out=$($SO storage raid status); rc=$?
   assert "after rebuild: healthy again, exit 0"        '(( rc == 0 )) && grep -q "all 2 devices active" <<<"$out"'

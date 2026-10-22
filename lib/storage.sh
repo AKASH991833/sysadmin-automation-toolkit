@@ -170,7 +170,7 @@ lvm_snapshot() {
       (( sb <= free )) || die "not enough free space in $LV_VG for a $(human "$sb") snapshot"
       (( sb >= 8388608 )) || die "snapshot size too small (< 8M)"
       (( apply )) || { echo "(dry-run: add --apply)"; return 0; }
-      lvcreate -s -n "$sname" -L "${sb}b" "$LV_VG/$LV_NAME" >/dev/null 2>&1 || die "lvcreate failed"
+      local err; err=$(lvcreate -s -n "$sname" -L "${sb}b" "$LV_VG/$LV_NAME" 2>&1) || die "lvcreate failed: $(tr '\n' ' ' <<<"$err")"
       journal lvm_snapshot_create "$LV_VG/$sname" "$(human "$sb")"
       printf '%s[ OK ]%s created %s/%s\n' "$GRN" "$OFF" "$LV_VG" "$sname" ;;
     list)
@@ -215,7 +215,7 @@ lvm_backup() {
   _BK_MNT=$(mktemp -d); _BK_MOUNTED=0; _BK_MADE=0; _BK_VG=$LV_VG; _BK_SNAP=$sname
   _bk_cleanup() { (( _BK_MOUNTED )) && umount "$_BK_MNT" 2>/dev/null; (( _BK_MADE )) && lvremove -f "$_BK_VG/$_BK_SNAP" >/dev/null 2>&1; rmdir "$_BK_MNT" 2>/dev/null; _BK_MOUNTED=0; _BK_MADE=0; }
   trap _bk_cleanup EXIT     # also runs when die() aborts half way: never leave a snapshot or mount behind
-  lvcreate -s -n "$sname" -L "${sb}b" "$LV_VG/$LV_NAME" >/dev/null 2>&1 || die "snapshot creation failed"; _BK_MADE=1
+  local err; err=$(lvcreate -s -n "$sname" -L "${sb}b" "$LV_VG/$LV_NAME" 2>&1) || die "snapshot creation failed: $(tr '\n' ' ' <<<"$err")"; _BK_MADE=1
   local opts=ro; [[ $LV_FS == xfs ]] && opts=ro,nouuid
   mount -o "$opts" "/dev/$LV_VG/$sname" "$_BK_MNT" || die "could not mount the snapshot read-only"; _BK_MOUNTED=1
   echo "  snapshot $sname mounted read-only, backing up"
@@ -292,7 +292,7 @@ fstab_add() {
   fstab_check "$tmp" ${SYSOPS_FSTAB_NORESOLVE:+--no-resolve}; local rc=$?
   (( rc == 2 )) && { rm -f "$tmp"; die "validation failed - $file NOT modified"; }
   (( apply )) || { rm -f "$tmp"; echo "(dry-run: add --apply)"; return 0; }
-  mkdir -p "$STATE/fstab-backups"; local bk="$STATE/fstab-backups/fstab-$(date +%Y%m%d-%H%M%S)"; cp -p "$file" "$bk"
+  mkdir -p "$STATE/fstab-backups"; local bk="$STATE/fstab-backups/fstab-$(date +%Y%m%d-%H%M%S-%N)"; cp -p "$file" "$bk"
   cat "$tmp" > "$file"; rm -f "$tmp"
   journal fstab_add "$mp" "$dev $fs backup=$bk"; printf '%s[ OK ]%s fstab updated (backup %s)\n' "$GRN" "$OFF" "$bk"
 }

@@ -77,7 +77,7 @@ cron_add() {
   printf '%s\n' "$blk" | sed 's/^/  + /'
   [[ $sched == '* * * * *' ]] && printf '  note: runs every minute - the wrapper skips a run while the previous one is still active\n'
   (( apply )) || { printf '(dry-run: add --apply to install)\n'; return 0; }
-  mkdir -p "$STATE/cron-backups"; local bk; bk="$STATE/cron-backups/${user:-$(id -un)}-$(date +%Y%m%d-%H%M%S).crontab"
+  mkdir -p "$STATE/cron-backups"; local bk; bk="$STATE/cron-backups/${user:-$(id -un)}-$(date +%Y%m%d-%H%M%S-%N).crontab"
   printf '%s\n' "$cur" > "$bk"
   printf '%s\n' "$new" | _cron_write "$user" || die "crontab refused the new table (backup: $bk)"
   # verify what the system actually stored
@@ -94,7 +94,7 @@ cron_remove() {
   grep -q "^# BEGIN sysops:$name\$" <<<"$cur" || { printf '%s no managed job named %s (unmanaged lines are never touched)\n' "${YEL}[WARN]${OFF}" "$name"; return 1; }
   printf 'plan: REMOVE managed job %s (all other lines stay untouched)\n' "$name"
   (( apply )) || { printf '(dry-run: add --apply)\n'; return 0; }
-  mkdir -p "$STATE/cron-backups"; printf '%s\n' "$cur" > "$STATE/cron-backups/${user:-$(id -un)}-$(date +%Y%m%d-%H%M%S).crontab"
+  mkdir -p "$STATE/cron-backups"; printf '%s\n' "$cur" > "$STATE/cron-backups/${user:-$(id -un)}-$(date +%Y%m%d-%H%M%S-%N).crontab"
   printf '%s\n' "$cur" | _cron_strip "$name" | _cron_write "$user" || die "crontab refused the new table"
   journal cron_remove "$name" ""; printf '%s[ OK ]%s removed %s\n' "$GRN" "$OFF" "$name"
 }
