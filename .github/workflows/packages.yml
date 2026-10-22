@@ -1,0 +1,49 @@
+name: Native packages
+on: [push, pull_request]
+permissions:
+  contents: read
+jobs:
+  deb:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        image: ['ubuntu:24.04', 'debian:12', 'debian:13']
+    container: ${{ matrix.image }}
+    steps:
+      - run: apt-get update -qq && apt-get install -y -qq git dpkg-dev bash coreutils findutils grep sed gawk util-linux python3 ca-certificates
+      - uses: actions/checkout@v4
+      - run: |
+          packaging/build.sh deb
+          apt-get install -y ./dist/*.deb
+          sysops --version
+          test "$(readlink -f /usr/bin/sysops)" = /usr/lib/sysadmin-automation-toolkit/sysops
+          apt-get remove -y sysadmin-automation-toolkit
+          test ! -e /usr/bin/sysops
+      - uses: actions/upload-artifact@v4
+        if: matrix.image == 'ubuntu:24.04'
+        with:
+          name: deb
+          path: dist/*.deb
+  rpm:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        image: ['rockylinux:9', 'almalinux:9', 'quay.io/centos/centos:stream9', 'fedora:latest', 'registry.access.redhat.com/ubi9/ubi:latest']
+    container: ${{ matrix.image }}
+    steps:
+      - run: dnf install -y -q git rpm-build bash coreutils findutils grep sed gawk util-linux python3 tar gzip which
+      - uses: actions/checkout@v4
+      - run: |
+          packaging/build.sh rpm
+          dnf install -y ./dist/*.rpm
+          sysops --version
+          test "$(readlink -f /usr/bin/sysops)" = /usr/lib/sysadmin-automation-toolkit/sysops
+          dnf remove -y sysadmin-automation-toolkit
+          test ! -e /usr/bin/sysops
+      - uses: actions/upload-artifact@v4
+        if: matrix.image == 'rockylinux:9'
+        with:
+          name: rpm
+          path: dist/*.rpm

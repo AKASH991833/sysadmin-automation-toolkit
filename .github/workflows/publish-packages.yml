@@ -1,0 +1,76 @@
+name: Publish package repository
+on:
+  push:
+    tags: ['v2.*']
+  workflow_dispatch:
+permissions:
+  contents: write
+  pages: write
+  id-token: write
+concurrency:
+  group: package-pages
+  cancel-in-progress: false
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: sudo apt-get update -qq && sudo apt-get install -y -qq rpm dpkg-dev apt-utils createrepo-c gnupg
+      - run: |
+          packaging/build.sh deb
+          packaging/build.sh rpm
+          packaging/repository.sh site
+      - name: Check signed APT index and install through APT
+        run: |
+          gpg --dearmor < site/repository-key.asc > /tmp/portfolio.gpg
+          gpgv --keyring /tmp/portfolio.gpg site/apt/InRelease
+          echo "deb [signed-by=/tmp/portfolio.gpg] file:$PWD/site/apt ./" | sudo tee /etc/apt/sources.list.d/portfolio.list
+          sudo apt-get update -qq
+          sudo apt-get install -y sysadmin-automation-toolkit
+          sysops --version
+          sudo apt-get remove -y sysadmin-automation-toolkit
+      - uses: actions/upload-artifact@v4
+        with:
+          name: signed-site
+          path: site
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: site
+      - name: Attach packages to the release
+        if: startsWith(github.ref, 'refs/tags/')
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release view "${GITHUB_REF_NAME}" || gh release create "${GITHUB_REF_NAME}" --title "${GITHUB_REF_NAME}" --notes 'Native packages, tested CI, and enterprise learning modules. See README for scope and limits.'
+          gh release upload "${GITHUB_REF_NAME}" dist/* site/repository-key.asc site/FINGERPRINT site/SHA256SUMS site/SHA256SUMS.asc --clobber
+  rpm-repository-test:
+    needs: build
+    runs-on: ubuntu-latest
+    container: rockylinux:9
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: signed-site
+          path: site
+      - run: |
+          cat > /etc/yum.repos.d/portfolio.repo <<EOF
+          [portfolio]
+          name=Signed portfolio metadata
+          baseurl=file://$PWD/site/rpm
+          enabled=1
+          gpgcheck=0
+          repo_gpgcheck=1
+          gpgkey=file://$PWD/site/repository-key.asc
+          EOF
+          dnf install -y sysadmin-automation-toolkit
+          sysops --version
+          dnf remove -y sysadmin-automation-toolkit
+  deploy:
+    needs: [build, rpm-repository-test]
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - uses: actions/deploy-pages@v4
+        id: deployment
