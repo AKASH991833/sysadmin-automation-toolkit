@@ -73,3 +73,51 @@ jobs:
           ./sysops user offboard ciuser --apply
           ./sysops user delete ciuser --apply
           ! getent passwd ciuser
+  debian:
+    # The same suite on Debian 12 (bookworm, oldstable) and Debian 13 (trixie, stable).
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        distro: [debian-12, debian-13]
+        include:
+          - {distro: debian-12, image: debian:12}
+          - {distro: debian-13, image: debian:13}
+    container: ${{ matrix.image }}
+    steps:
+      - name: Install test dependencies (apt)
+        run: |
+          export DEBIAN_FRONTEND=noninteractive
+          apt-get update -qq
+          apt-get install -y -qq --no-install-recommends git bash diffutils findutils procps gawk sed grep util-linux passwd tar gzip openssl hostname iproute2 which ca-certificates
+      - uses: actions/checkout@v4
+      - name: Test suite on ${{ matrix.distro }}
+        run: tests/run.sh
+  live-debian:
+    # Real useradd/offboard/delete on each Debian release - exercises the "sudo"
+    # sudo-group path (Debian/Ubuntu) as opposed to "wheel" (RHEL family).
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        distro: [debian-12, debian-13]
+        include:
+          - {distro: debian-12, image: debian:12}
+          - {distro: debian-13, image: debian:13}
+    container: ${{ matrix.image }}
+    steps:
+      - name: Install dependencies (apt)
+        run: |
+          export DEBIAN_FRONTEND=noninteractive
+          apt-get update -qq
+          apt-get install -y -qq --no-install-recommends git bash diffutils findutils procps gawk sed grep util-linux passwd tar gzip openssl hostname iproute2 which sudo ca-certificates
+      - uses: actions/checkout@v4
+      - name: Real user sync/offboard/delete on ${{ matrix.distro }} (sudo group path)
+        run: |
+          printf 'username,fullname,groups,shell,sudo,ssh_public_key,expires\nciuser,CI User,,/bin/bash,yes,,\n' > /tmp/u.csv
+          ./sysops user sync /tmp/u.csv --apply
+          getent passwd ciuser
+          id ciuser | grep -qw sudo        # sudo: yes must map to the sudo group on Debian
+          ./sysops user offboard ciuser --apply
+          ./sysops user delete ciuser --apply
+          ! getent passwd ciuser

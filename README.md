@@ -2,7 +2,7 @@
 
 [![CI](https://github.com/AKASH991833/sysadmin-automation-toolkit/actions/workflows/ci.yml/badge.svg)](https://github.com/AKASH991833/sysadmin-automation-toolkit/actions/workflows/ci.yml)
 [![release](https://img.shields.io/github/v/release/AKASH991833/sysadmin-automation-toolkit)](https://github.com/AKASH991833/sysadmin-automation-toolkit/releases)
-![bash](https://img.shields.io/badge/language-bash-4EAA25) ![tested on](https://img.shields.io/badge/tested%20on-ubuntu%20%2B%205x%20RHEL--family-blue) ![license](https://img.shields.io/badge/license-MIT-blue)
+![bash](https://img.shields.io/badge/language-bash-4EAA25) ![tested on](https://img.shields.io/badge/tested%20on-ubuntu%20%2B%20debian%2012%2F13%20%2B%205x%20RHEL--family-blue) ![license](https://img.shields.io/badge/license-MIT-blue)
 
 The daily jobs of a Linux admin (create and remove users, take backups, clean logs, check health, run scheduled maintenance) as **one safe, tested command-line tool**. Pure Bash, no dependencies.
 
@@ -105,6 +105,7 @@ Run `./sysops` with no arguments for the full list. Environment: `SYSOPS_ROOT` (
 - **Not run in the author's sandbox:** operations on the *real* `/etc/passwd` (including killing sessions with `pkill`), and `apt` update counts. The `live` job in GitHub Actions runs real `useradd/userdel` on an Ubuntu VM; see the CI badge.
 - **CI result (Oct 22, 2026):** `test` and `live` (real useradd/userdel on an Ubuntu VM) are green on the first run.
 - **RHEL-family verified:** the `rhel-family` CI matrix runs the full suite, and `live-rhel-family` runs real useradd/offboard/delete asserting `sudo: yes` maps to the `wheel` group, on Rocky 9, AlmaLinux 9, CentOS Stream 9, Fedora (latest) and Red Hat UBI 9 (the free official Red Hat build - no RHEL subscription claimed).
+- **Debian verified:** the `debian` CI matrix runs the full suite, and `live-debian` runs real useradd/offboard/delete asserting `sudo: yes` maps to the `sudo` group, on Debian 12 (bookworm) and Debian 13 (trixie).
 - Password-based accounts are intentionally not created (key-only).
 
 ## License

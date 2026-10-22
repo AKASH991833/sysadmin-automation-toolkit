@@ -1,5 +1,11 @@
 # Changelog
 
+## [1.2.0] - 2026-10-22
+### Added
+- Debian CI matrices: the full test-suite on Debian 12 (bookworm) and Debian 13 (trixie),
+  plus a live job running real useradd/offboard/delete with the Debian `sudo` sudo-group
+  mapping asserted (the counterpart of the RHEL `wheel` assertion).
+
 ## [1.1.0] - 2026-10-22
 ### Added
 - Rocky Linux 9 CI jobs: full test-suite on Rocky, plus a live job running real
