@@ -13,7 +13,7 @@ gpg --batch --passphrase '' --quick-generate-key 'Linux Portfolio Packages (publ
 key=$(gpg --batch --with-colons --list-keys | awk -F: '$1=="fpr"{print $10;exit}')
 gpg --batch --armor --export "$key" > "$site/repository-key.asc"
 printf '%s\n' "$key" > "$site/FINGERPRINT"
-(cd "$site/apt"; dpkg-scanpackages . /dev/null > Packages; gzip -k -f Packages; apt-ftparchive release . > Release; gpg --batch --yes --local-user "$key" --clearsign -o InRelease Release; gpg --batch --yes --local-user "$key" --armor --detach-sign Release)
+(cd "$site/apt"; dpkg-scanpackages . /dev/null > Packages; gzip -k -f Packages; apt-ftparchive release . > Release; gpg --batch --yes --local-user "$key" --clearsign -o InRelease Release; gpg --batch --yes --local-user "$key" --detach-sign -o Release.gpg Release)
 createrepo_c "$site/rpm"
 gpg --batch --yes --local-user "$key" --armor --detach-sign "$site/rpm/repodata/repomd.xml"
 (cd "$site"; sha256sum apt/*.deb rpm/*.rpm > SHA256SUMS; gpg --batch --yes --local-user "$key" --armor --detach-sign SHA256SUMS)
