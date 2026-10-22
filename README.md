@@ -127,9 +127,9 @@ Run `./sysops` with no arguments for the full list. Environment: `SYSOPS_ROOT` (
 
 | v1.3.0 | cron tests | fixture storage tests | real LVM extend + RAID | real snapshot + backup drills |
 |---|---|---|---|---|
-| Ubuntu runner | real crontab | yes | yes | yes |
-| Debian 12 (container) | real crontab | yes | yes | yes (host modules mounted) |
-| Debian 13, Rocky 9, Alma 9, CentOS Stream 9, Fedora | real crontab | yes | see CI badge | skipped when the kernel target is not loadable in the container |
+| Ubuntu runner (31 checks pass) | real crontab | yes | yes | yes |
+| Debian 12 (container, 31 checks pass) | real crontab | yes | yes | yes (host kernel modules mounted) |
+| Debian 13, Rocky 9, Alma 9, CentOS Stream 9, Fedora (containers) | real crontab | yes | **RAID real (9 checks); real LVM skipped** - device-mapper is not usable in these containers (the drill probes and prints a NOTE) | skipped |
 | UBI 9 | real crontab | yes | no (no mdadm/lvm2) | no |
 Containers share the runner kernel; this table is updated from the CI results, not from hope.
 

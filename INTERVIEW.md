@@ -122,7 +122,7 @@ alarms on the CSV, and exporting journal.jsonl to syslog.
 
 **How do you know a RAID is degraded?** `/proc/mdstat` shows `[2/1] [U_]`. The parser reads that, and the drill fails a real md RAID1 member, removes it, adds it back and watches the rebuild.
 
-**What did you not test?** See the README table: the container distros share the runner kernel, so some need the host `dm-snapshot` module and skip those drills when it is not loadable. UBI has no LVM/RAID tools.
+**What did you not test?** See the README table: the container distros share the runner kernel, so real LVM ran on Ubuntu and Debian 12 only; the other container distros skip LVM (device-mapper unusable there) and run RAID. UBI has no LVM/RAID tools.
 
 ## Honest test status
 See the README "Honest test report" - it is kept in sync with CI and names exactly what ran where.
