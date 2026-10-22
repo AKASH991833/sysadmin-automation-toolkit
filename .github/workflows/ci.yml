@@ -44,7 +44,7 @@ jobs:
           apt-get install -y -qq --no-install-recommends git bash coreutils findutils procps gawk sed grep util-linux mount tar gzip openssl hostname iproute2 which ca-certificates lvm2 mdadm e2fsprogs kmod curl python3
       - name: Install (dnf)
         if: matrix.pm == 'dnf'
-        run: dnf install -y -q git bash coreutils diffutils findutils procps-ng gawk sed grep util-linux tar gzip openssl hostname iproute which lvm2 mdadm e2fsprogs kmod curl python3
+        run: dnf install -y -q git bash diffutils findutils procps-ng gawk sed grep util-linux tar gzip openssl hostname iproute which lvm2 mdadm e2fsprogs kmod python3
       - uses: actions/checkout@v4
       - name: Real LVM + RAID drills on ${{ matrix.distro }}
         run: STORAGE_NO_UDEV=1 ./tests/storage-live.sh
