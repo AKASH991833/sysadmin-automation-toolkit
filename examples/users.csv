@@ -1,0 +1,4 @@
+username,fullname,groups,shell,sudo,ssh_public_key,expires
+alice,Alice Admin,developers;ops,/bin/bash,yes,ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIExampleKeyReplaceMe alice@laptop,
+bob,Bob Developer,developers,/bin/bash,no,,
+carol,Carol Contractor,developers,/bin/bash,no,,2026-12-31

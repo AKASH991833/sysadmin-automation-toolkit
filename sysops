@@ -1,0 +1,47 @@
+#!/usr/bin/env bash
+# sysops - sysadmin automation toolkit: declarative users, incremental backups, safe log cleanup, health reports, task runner
+set -uo pipefail
+HOME_DIR=$(dirname "$(readlink -f "${BASH_SOURCE[0]}")")
+for f in core users backup logs health runner; do # shellcheck disable=SC1090
+  source "$HOME_DIR/lib/$f.sh"; done
+
+usage() { cat <<U
+sysops $SO_VERSION - sysadmin automation toolkit
+
+USERS (all changes are plans first; add --apply to execute; every action is written to the journal)
+  sysops user sync users.csv [--apply] [--prune]   make the system match the CSV (create / modify / lock removed)
+  sysops user offboard NAME [--apply]              lock + remove keys/sudo + archive home
+  sysops user delete NAME [--apply]                delete a sysops-managed account (+home)
+  sysops user audit                                who has sudo, empty passwords, never-expiring passwords...
+BACKUP
+  sysops backup run --name N --src "/etc /home" --dest DIR [--full] [--key FILE] [--keep-chains 3] [--exclude P]
+  sysops backup list DIR [NAME]
+  sysops backup restore --dest DIR --name N --to TARGET [--key FILE]
+LOGS / DISK / HEALTH
+  sysops logs clean --dir DIR [--compress-after 7] [--delete-after 30] [--pattern GLOB] [--apply]
+  sysops disk hogs [PATH] [TOP]
+  sysops health [--format text|md|html|json]       exit 0 ok, 1 warning, 2 critical
+RUNNER
+  sysops run TASKS_FILE                            run tasks with timeouts + overlap lock + summary
+  sysops cron                                      print a cron.d entry
+  sysops journal [N]                               last N audit-journal entries
+Environment: SYSOPS_ROOT (manage users of another root fs), SYSOPS_STATE, SYSOPS_WEBHOOK_URL, NO_COLOR
+U
+}
+
+case ${1:-help} in
+  user) shift; sub=${1:-}; shift || true
+        case $sub in
+          sync) user_sync "$@";; offboard) user_offboard "$@";; delete) user_delete "$@";; audit) _files; user_audit "$@";;
+          *) die "user: sync | offboard | delete | audit";; esac ;;
+  backup) shift; sub=${1:-}; shift || true
+        case $sub in run) backup_run "$@";; list) backup_list "$@";; restore) backup_restore "$@";; *) die "backup: run | list | restore";; esac ;;
+  logs) shift; [[ ${1:-} == clean ]] || die "logs: clean"; shift; logs_clean "$@" ;;
+  disk) shift; [[ ${1:-} == hogs ]] || die "disk: hogs"; shift; disk_hogs "$@" ;;
+  health) shift; fmt=text; [[ ${1:-} == --format ]] && fmt=$2; health_report "$fmt" ;;
+  run) shift; run_all "$@" ;;
+  cron) cron_print ;;
+  journal) tail -n "${2:-20}" "$STATE/journal.jsonl" 2>/dev/null || echo "journal is empty" ;;
+  version|--version) echo "sysops $SO_VERSION" ;;
+  *) usage ;;
+esac

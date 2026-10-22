@@ -1,0 +1,26 @@
+name: CI
+on: [push, pull_request]
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: sudo apt-get update -qq && sudo apt-get install -y -qq shellcheck
+      - name: ShellCheck
+        run: shellcheck -S error -x sysops lib/*.sh tests/run.sh
+      - name: Test-suite as real root (user tests use a fake root filesystem)
+        run: sudo ./tests/run.sh
+  live:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Real useradd/usermod/userdel on the runner
+        run: |
+          printf 'username,fullname,groups,shell,sudo,ssh_public_key,expires\nciuser,CI User,,/bin/bash,no,,\n' > /tmp/u.csv
+          sudo ./sysops user sync /tmp/u.csv --apply
+          getent passwd ciuser
+          sudo ./sysops user offboard ciuser --apply
+          sudo ./sysops user delete ciuser --apply
+          ! getent passwd ciuser
+      - run: ./sysops health --format md || true
+      - run: sudo ./sysops user audit
