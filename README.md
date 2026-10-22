@@ -96,6 +96,7 @@ Run `./sysops` with no arguments for the full list. Environment: `SYSOPS_ROOT` (
 - `tests/run.sh`: **44 checks pass** locally. User tests run real `useradd/usermod/userdel` against a **fake root filesystem** (`-R`), inside a user namespace (no real root used): plan vs apply, idempotency, groups added and removed, SSH key permissions, expiry, prune/lock, untouched legacy account, offboard (lock + key + sudo removal + archive), delete guards. Backup tests compare the restored tree with the source (`diff -r`), replay of deletions, tamper detection, encryption, chain retention. Log, health (JSON/MD/HTML), runner (OK/FAIL/TIMEOUT, overlap lock) are covered.
 - ShellCheck clean (`-S error`).
 - **Not run in the author's sandbox:** operations on the *real* `/etc/passwd` (including killing sessions with `pkill`), and `apt` update counts. The `live` job in GitHub Actions runs real `useradd/userdel` on an Ubuntu VM; see the CI badge.
+- **CI result (Oct 22, 2026):** `test` and `live` (real useradd/userdel on an Ubuntu VM) are green on the first run.
 - RHEL-family tools (`wheel`) are handled in code but were not run on RHEL.
 - Password-based accounts are intentionally not created (key-only).
 
